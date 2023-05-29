@@ -1,229 +1,178 @@
+// servidor.cpp
+
 #include <iostream>
-
-#include <sys/socket.h>
-
-#include <arpa/inet.h>
-
+#include <cstring>
 #include <unistd.h>
-
-#include <string>
-
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <thread>
 #include <vector>
 
-#include <cstdlib>
+const int PUERTO = 7777;
+const int TAMANIO_TABLERO = 15;
 
-#include <ctime>
+enum class EstadoCasilla {
+    Vacio,
+    Barco,
+    Disparada
+};
 
-#include <cstring>
+struct Tablero {
+    EstadoCasilla casillas[TAMANIO_TABLERO][TAMANIO_TABLERO];
+};
 
-#include <unistd.h> // Para usar la función close()
+struct Cliente {
+    int socket;
+    Tablero tablero;
+};
 
-#include <thread>   // Para utilizar hilos
-
-
-// Función para enviar un mensaje al cliente
-void enviarMensaje(int socketCliente,
-  const std::string & mensaje) {
-  send(socketCliente, mensaje.c_str(), mensaje.size(), 0);
+int crearSocket() {
+    int socketServidor = socket(AF_INET, SOCK_STREAM, 0);
+    if (socketServidor == -1) {
+        std::cerr << "Error al crear el socket" << std::endl;
+        exit(1);
+    }
+    return socketServidor;
 }
 
-// Función para recibir un mensaje del cliente
-std::string recibirMensaje(int socketCliente) {
-  const int TAMANIO_BUFFER = 1024;
-  char buffer[TAMANIO_BUFFER];
-  memset(buffer, 0, TAMANIO_BUFFER);
-  recv(socketCliente, buffer, TAMANIO_BUFFER, 0);
-  return std::string(buffer);
+void enlazarSocket(int socketServidor, int puerto) {
+    sockaddr_in direccionServidor{};
+    direccionServidor.sin_family = AF_INET;
+    direccionServidor.sin_addr.s_addr = INADDR_ANY;
+    direccionServidor.sin_port = htons(puerto);
+
+    if (bind(socketServidor, (struct sockaddr*)&direccionServidor, sizeof(direccionServidor)) == -1) {
+        std::cerr << "Error al enlazar el socket" << std::endl;
+        exit(1);
+    }
 }
 
-// Función para procesar un disparo del cliente
-std::string procesarDisparo(const std::string & coordenadas, int turnoCliente) {
-  // Implementa la lógica para procesar el disparo del cliente y devuelve el resultado
+void escucharSocket(int socketServidor) {
+    if (listen(socketServidor, 1) == -1) {
+        std::cerr << "Error al poner en escucha el socket" << std::endl;
+        exit(1);
+    }
 }
 
-// Función para verificar si hay un ganador en el juego
-bool hayGanador() {
-  // Implementa la lógica para verificar si hay un ganador y devuelve true o false
+int aceptarConexion(int socketServidor) {
+    sockaddr_in direccionCliente{};
+    socklen_t tamanoDireccion = sizeof(direccionCliente);
+    int socketCliente = accept(socketServidor, (struct sockaddr*)&direccionCliente, &tamanoDireccion);
+    if (socketCliente == -1) {
+        std::cerr << "Error al aceptar la conexión" << std::endl;
+        exit(1);
+    }
+    return socketCliente;
 }
 
-// Función para obtener los tableros actualizados
-std::string obtenerTablerosActualizados() {
-  // Implementa la lógica para obtener los tableros actualizados y devuelve la representación en cadena
-}
-
-// Función para cerrar un socket
 void cerrarSocket(int socket) {
-  close(socket);
+    close(socket);
 }
 
-void manejarCliente(int socketCliente) {
-  std::string mensaje;
+void enviarMensaje(int socket, const std::string& mensaje) {
+    int longitudMensaje = mensaje.length();
+    send(socket, &longitudMensaje, sizeof(longitudMensaje), 0);
+    send(socket, mensaje.c_str(), longitudMensaje, 0);
+}
 
-  // Generar posiciones de embarcaciones aleatorias para el cliente
-  std::string posicionesEmbarcaciones = generarPosicionesEmbarcaciones();
-  enviarMensaje(socketCliente, posicionesEmbarcaciones);
+std::string recibirMensaje(int socket) {
+    int longitudMensaje;
+    recv(socket, &longitudMensaje, sizeof(longitudMensaje), 0);
+    char buffer[longitudMensaje + 1];
+    recv(socket, buffer, longitudMensaje, 0);
+    buffer[longitudMensaje] = '\0';
+    return buffer;
+}
 
-  // Determinar quién comienza el juego
-  bool turnoCliente = (rand() % 2 == 0);
-  std::string mensajeTurno = turnoCliente ? "cliente" : "servidor";
-  enviarMensaje(socketCliente, mensajeTurno);
+void definirPosicionesEmbarcaciones(Tablero& tablero) {
+    // Lógica para definir las posiciones de las embarcaciones
+    // ...
+}
 
-  while (true) {
-    // Recibir coordenadas de disparo
-    mensaje = recibirMensaje(socketCliente);
+std::string generarPosicionesEmbarcaciones() {
+    Tablero tablero;
+    definirPosicionesEmbarcaciones(tablero);
 
-    // Procesar disparo
-    std::string resultadoDisparo = procesarDisparo(mensaje, turnoCliente);
-
-    // Enviar resultado del disparo
-    enviarMensaje(socketCliente, resultadoDisparo);
-
-    // Enviar tableros actualizados
-    std::string tablerosActualizados = obtenerTablerosActualizados();
-    enviarMensaje(socketCliente, tablerosActualizados);
-
-    // Verificar si hay un ganador
-    if (hayGanador()) {
-      break;
+    std::string posiciones;
+    for (int fila = 0; fila < TAMANIO_TABLERO; ++fila) {
+        for (int columna = 0; columna < TAMANIO_TABLERO; ++columna) {
+            char estadoCasilla = ' ';
+            if (tablero.casillas[fila][columna] == EstadoCasilla::Barco) {
+                estadoCasilla = 'B';
+            }
+            posiciones += estadoCasilla;
+        }
     }
-
-    // Cambiar turno
-    turnoCliente = !turnoCliente;
-    mensajeTurno = turnoCliente ? "cliente" : "servidor";
-    enviarMensaje(socketCliente, mensajeTurno);
-  }
-
-  // Cerrar conexión con el cliente
-  cerrarSocket(socketCliente);
+    return posiciones;
 }
 
-int main(int argc, char * argv[]) {
-  // Verificar argumentos de línea de comandos
-  if (argc != 2) {
-    std::cout << "Uso: " << argv[0] << " <puerto_servidor>" << std::endl;
-    return 1;
-  }
-
-  int puertoServidor = std::stoi(argv[1]);
-
-  int socketServidor = crearSocket();
-  enlazarSocket(socketServidor, puertoServidor);
-  escucharSocket(socketServidor);
-
-  std::cout << "Esperando conexiones..." << std::endl;
-
-  while (true) {
-    int socketCliente = aceptarConexion(socketServidor);
-
-    // Crear un hilo para manejar la conexión con el cliente
-    std::thread clienteThread(manejarCliente, socketCliente);
-    clienteThread.detach();
-  }
-
-  cerrarSocket(socketServidor);
-
-  return 0;
-}
-
-void definirPosicionesEmbarcaciones(char tablero[][15]) {
-  std::srand(std::time(nullptr)); // Inicializar la semilla para generar números aleatorios
-
-  // Definir las posiciones de los barcos
-  colocarBarco(tablero, 'P', 5); // Portaaviones
-  colocarBarco(tablero, 'B', 4); // Buque 1
-  colocarBarco(tablero, 'B', 4); // Buque 2
-  colocarBarco(tablero, 'S', 3); // Submarino 1
-  colocarBarco(tablero, 'S', 3); // Submarino 2
-  colocarBarco(tablero, 'L', 1); // Lancha 1
-  colocarBarco(tablero, 'L', 1); // Lancha 2
-  colocarBarco(tablero, 'L', 1); // Lancha 3
-}
-
-void colocarBarco(char tablero[][15], char tipoBarco, int longitud) {
-  bool colocado = false;
-  while (!colocado) {
-    int fila = std::rand() % 15; // Generar una fila aleatoria
-    int columna = std::rand() % 15; // Generar una columna aleatoria
-    int direccion = std::rand() % 2; // Generar una dirección aleatoria (0: horizontal, 1: vertical)
-
-    // Verificar si el barco cabe en esa posición
-    if (direccion == 0 && columna + longitud <= 15) {
-      bool espacioDisponible = true;
-      for (int i = columna; i < columna + longitud; i++) {
-        if (tablero[fila][i] != ' ') {
-          espacioDisponible = false;
-          break;
+std::string obtenerTablerosActualizados(const std::vector<Cliente>& clientes) {
+    std::string tableros;
+    for (const auto& cliente : clientes) {
+        for (int fila = 0; fila < TAMANIO_TABLERO; ++fila) {
+            for (int columna = 0; columna < TAMANIO_TABLERO; ++columna) {
+                char estadoCasilla = ' ';
+                if (cliente.tablero.casillas[fila][columna] == EstadoCasilla::Disparada) {
+                    estadoCasilla = 'X';
+                }
+                tableros += estadoCasilla;
+            }
         }
-      }
-
-      // Colocar el barco en el tablero
-      if (espacioDisponible) {
-        for (int i = columna; i < columna + longitud; i++) {
-          tablero[fila][i] = tipoBarco;
-        }
-        colocado = true;
-      }
-    } else if (direccion == 1 && fila + longitud <= 15) {
-      bool espacioDisponible = true;
-      for (int i = fila; i < fila + longitud; i++) {
-        if (tablero[i][columna] != ' ') {
-          espacioDisponible = false;
-          break;
-        }
-      }
-
-      // Colocar el barco en el tablero
-      if (espacioDisponible) {
-        for (int i = fila; i < fila + longitud; i++) {
-          tablero[i][columna] = tipoBarco;
-        }
-        colocado = true;
-      }
     }
-  }
+    return tableros;
 }
 
-int seleccionarTurno() {
-  std::srand(std::time(nullptr)); // Inicializar la semilla para generar números aleatorios
-  return std::rand() % 2; // Generar un número aleatorio entre 0 y 1 (0: cliente, 1: servidor)
+bool verificarJugada(const std::string& coordenadas, const Tablero& tablero) {
+    // Lógica para verificar si una jugada es válida
+    // ...
+    return true;
 }
 
-std::string generarDisparo() {
-  std::string coordenadas;
-
-  // Generar coordenadas de disparo al azar
-  char letra = 'A' + (std::rand() % 15); // Generar una letra aleatoria entre A y O
-  int numero = 1 + (std::rand() % 15); // Generar un número aleatorio entre 1 y 15
-
-  coordenadas = letra + std::to_string(numero);
-
-  return coordenadas;
+std::string procesarDisparo(const std::string& coordenadas, int turnoCliente) {
+    // Lógica para procesar el disparo y determinar el resultado
+    // ...
+    return "Hundido";
 }
 
-bool verificarJugada(const std::string & coordenadas,
-  const Tablero & tablero) {
-  // Obtener las coordenadas en forma de fila y columna
-  int fila = coordenadas[0] - 'A';
-  int columna = std::stoi(coordenadas.substr(1)) - 1;
-
-  // Verificar si la casilla ya ha sido disparada
-  if (tablero.casillas[fila][columna] == EstadoCasilla::Disparada) {
+bool hayGanador(const std::vector<Cliente>& clientes) {
+    // Lógica para determinar si hay un ganador
+    // ...
     return false;
-  }
-
-  // Actualizar el estado de la casilla en el tablero
-  tablero.casillas[fila][columna] = EstadoCasilla::Disparada;
-
-  return true;
 }
 
-void enviarResultados(const std::string & resultados,
-  const std::vector < Cliente > & clientes) {
-  for (const auto & cliente: clientes) {
-    enviarMensaje(cliente.socket, resultados);
-  }
+void manejarCliente(int socketCliente, std::vector<Cliente>& clientes, int& turnoCliente) {
+    std::string posicionesEmbarcaciones = generarPosicionesEmbarcaciones();
+    enviarMensaje(socketCliente, posicionesEmbarcaciones);
+
+    while (!hayGanador(clientes)) {
+        std::string mensaje = recibirMensaje(socketCliente);
+        std::string resultadoDisparo = procesarDisparo(mensaje, turnoCliente);
+        turnoCliente = (turnoCliente + 1) % clientes.size();
+
+        std::string tablerosActualizados = obtenerTablerosActualizados(clientes);
+        enviarMensaje(socketCliente, resultadoDisparo);
+        enviarMensaje(socketCliente, tablerosActualizados);
+    }
+
+    cerrarSocket(socketCliente);
 }
 
-void mostrarInformacion(const std::string & mensaje) {
-  std::cout << mensaje << std::endl;
+int main() {
+    int socketServidor = crearSocket();
+    enlazarSocket(socketServidor, PUERTO);
+    escucharSocket(socketServidor);
+
+    std::vector<Cliente> clientes;
+    int turnoCliente = 0;
+
+    while (true) {
+        int socketCliente = aceptarConexion(socketServidor);
+        clientes.push_back({ socketCliente });
+
+        std::thread clienteThread(manejarCliente, socketCliente, std::ref(clientes), std::ref(turnoCliente));
+        clienteThread.detach();
+    }
+
+    cerrarSocket(socketServidor);
+    return 0;
 }
