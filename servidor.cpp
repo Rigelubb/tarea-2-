@@ -1,178 +1,207 @@
-// servidor.cpp
-
 #include <iostream>
+#include <iomanip>
 #include <cstring>
+#include <cstdlib>
+#include <ctime>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <thread>
-#include <vector>
+#include <netinet/in.h>
 
-const int PUERTO = 7777;
-const int TAMANIO_TABLERO = 15;
+using namespace std;
 
-enum class EstadoCasilla {
-    Vacio,
-    Barco,
-    Disparada
-};
+const int TAM_TABLERO = 10;
 
-struct Tablero {
-    EstadoCasilla casillas[TAMANIO_TABLERO][TAMANIO_TABLERO];
-};
-
-struct Cliente {
-    int socket;
-    Tablero tablero;
-};
-
-int crearSocket() {
-    int socketServidor = socket(AF_INET, SOCK_STREAM, 0);
-    if (socketServidor == -1) {
-        std::cerr << "Error al crear el socket" << std::endl;
-        exit(1);
+void imprimirTablero(char tablero[TAM_TABLERO][TAM_TABLERO]) {
+    cout << "   ";
+    for (int i = 0; i < TAM_TABLERO; i++) {
+        cout << static_cast<char>('A' + i) << " ";
     }
-    return socketServidor;
-}
+    cout << endl;
 
-void enlazarSocket(int socketServidor, int puerto) {
-    sockaddr_in direccionServidor{};
-    direccionServidor.sin_family = AF_INET;
-    direccionServidor.sin_addr.s_addr = INADDR_ANY;
-    direccionServidor.sin_port = htons(puerto);
-
-    if (bind(socketServidor, (struct sockaddr*)&direccionServidor, sizeof(direccionServidor)) == -1) {
-        std::cerr << "Error al enlazar el socket" << std::endl;
-        exit(1);
-    }
-}
-
-void escucharSocket(int socketServidor) {
-    if (listen(socketServidor, 1) == -1) {
-        std::cerr << "Error al poner en escucha el socket" << std::endl;
-        exit(1);
-    }
-}
-
-int aceptarConexion(int socketServidor) {
-    sockaddr_in direccionCliente{};
-    socklen_t tamanoDireccion = sizeof(direccionCliente);
-    int socketCliente = accept(socketServidor, (struct sockaddr*)&direccionCliente, &tamanoDireccion);
-    if (socketCliente == -1) {
-        std::cerr << "Error al aceptar la conexión" << std::endl;
-        exit(1);
-    }
-    return socketCliente;
-}
-
-void cerrarSocket(int socket) {
-    close(socket);
-}
-
-void enviarMensaje(int socket, const std::string& mensaje) {
-    int longitudMensaje = mensaje.length();
-    send(socket, &longitudMensaje, sizeof(longitudMensaje), 0);
-    send(socket, mensaje.c_str(), longitudMensaje, 0);
-}
-
-std::string recibirMensaje(int socket) {
-    int longitudMensaje;
-    recv(socket, &longitudMensaje, sizeof(longitudMensaje), 0);
-    char buffer[longitudMensaje + 1];
-    recv(socket, buffer, longitudMensaje, 0);
-    buffer[longitudMensaje] = '\0';
-    return buffer;
-}
-
-void definirPosicionesEmbarcaciones(Tablero& tablero) {
-    // Lógica para definir las posiciones de las embarcaciones
-    // ...
-}
-
-std::string generarPosicionesEmbarcaciones() {
-    Tablero tablero;
-    definirPosicionesEmbarcaciones(tablero);
-
-    std::string posiciones;
-    for (int fila = 0; fila < TAMANIO_TABLERO; ++fila) {
-        for (int columna = 0; columna < TAMANIO_TABLERO; ++columna) {
-            char estadoCasilla = ' ';
-            if (tablero.casillas[fila][columna] == EstadoCasilla::Barco) {
-                estadoCasilla = 'B';
-            }
-            posiciones += estadoCasilla;
+    for (int i = 0; i < TAM_TABLERO; i++) {
+        cout << setw(2) << i + 1 << " ";
+        for (int j = 0; j < TAM_TABLERO; j++) {
+            cout << tablero[i][j] << " ";
         }
+        cout << endl;
     }
-    return posiciones;
+    cout << endl;
 }
 
-std::string obtenerTablerosActualizados(const std::vector<Cliente>& clientes) {
-    std::string tableros;
-    for (const auto& cliente : clientes) {
-        for (int fila = 0; fila < TAMANIO_TABLERO; ++fila) {
-            for (int columna = 0; columna < TAMANIO_TABLERO; ++columna) {
-                char estadoCasilla = ' ';
-                if (cliente.tablero.casillas[fila][columna] == EstadoCasilla::Disparada) {
-                    estadoCasilla = 'X';
-                }
-                tableros += estadoCasilla;
-            }
-        }
-    }
-    return tableros;
-}
+bool validarCoordenadas(char coordenadas[3]) {
+    if (strlen(coordenadas) != 2)
+        return false;
 
-bool verificarJugada(const std::string& coordenadas, const Tablero& tablero) {
-    // Lógica para verificar si una jugada es válida
-    // ...
-    return true;
-}
+    int fila = coordenadas[1] - '1';
+    int columna = coordenadas[0] - 'A';
 
-std::string procesarDisparo(const std::string& coordenadas, int turnoCliente) {
-    // Lógica para procesar el disparo y determinar el resultado
-    // ...
-    return "Hundido";
-}
-
-bool hayGanador(const std::vector<Cliente>& clientes) {
-    // Lógica para determinar si hay un ganador
-    // ...
-    return false;
-}
-
-void manejarCliente(int socketCliente, std::vector<Cliente>& clientes, int& turnoCliente) {
-    std::string posicionesEmbarcaciones = generarPosicionesEmbarcaciones();
-    enviarMensaje(socketCliente, posicionesEmbarcaciones);
-
-    while (!hayGanador(clientes)) {
-        std::string mensaje = recibirMensaje(socketCliente);
-        std::string resultadoDisparo = procesarDisparo(mensaje, turnoCliente);
-        turnoCliente = (turnoCliente + 1) % clientes.size();
-
-        std::string tablerosActualizados = obtenerTablerosActualizados(clientes);
-        enviarMensaje(socketCliente, resultadoDisparo);
-        enviarMensaje(socketCliente, tablerosActualizados);
-    }
-
-    cerrarSocket(socketCliente);
+    return (fila >= 0 && fila < TAM_TABLERO && columna >= 0 && columna < TAM_TABLERO);
 }
 
 int main() {
-    int socketServidor = crearSocket();
-    enlazarSocket(socketServidor, PUERTO);
-    escucharSocket(socketServidor);
+    srand(time(0));
 
-    std::vector<Cliente> clientes;
-    int turnoCliente = 0;
-
-    while (true) {
-        int socketCliente = aceptarConexion(socketServidor);
-        clientes.push_back({ socketCliente });
-
-        std::thread clienteThread(manejarCliente, socketCliente, std::ref(clientes), std::ref(turnoCliente));
-        clienteThread.detach();
+    // Crear socket
+    int servidorSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (servidorSocket == -1) {
+        cerr << "Error al crear el socket" << endl;
+        return 1;
     }
 
-    cerrarSocket(socketServidor);
+    // Configurar dirección del servidor
+    sockaddr_in direccionServidor;
+    direccionServidor.sin_family = AF_INET;
+    direccionServidor.sin_port = htons(8888);
+    direccionServidor.sin_addr.s_addr = INADDR_ANY;
+
+    // Vincular el socket a la dirección del servidor
+    if (bind(servidorSocket, (struct sockaddr*)&direccionServidor, sizeof(direccionServidor)) == -1) {
+        cerr << "Error al vincular el socket" << endl;
+        close(servidorSocket);
+        return 1;
+    }
+
+    // Escuchar conexiones entrantes
+    if (listen(servidorSocket, 1) == -1) {
+        cerr << "Error al escuchar conexiones entrantes" << endl;
+        close(servidorSocket);
+        return 1;
+    }
+
+    cout << "Esperando conexión del Jugador 2..." << endl;
+
+    // Aceptar conexión del Jugador 2
+    sockaddr_in direccionJugador2;
+    socklen_t tamDireccionJugador2 = sizeof(direccionJugador2);
+    int jugador2Socket = accept(servidorSocket, (struct sockaddr*)&direccionJugador2, &tamDireccionJugador2);
+    if (jugador2Socket == -1) {
+        cerr << "Error al aceptar la conexión del Jugador 2" << endl;
+        close(servidorSocket);
+        return 1;
+    }
+
+    cout << "Conexión establecida con el Jugador 2" << endl;
+
+    // Generar tablero de barcos del Jugador 1
+    char tableroJugador1[TAM_TABLERO][TAM_TABLERO];
+    memset(tableroJugador1, ' ', sizeof(tableroJugador1));
+
+    for (int i = 0; i < 3; i++) {
+        int fila = rand() % TAM_TABLERO;
+        int columna = rand() % TAM_TABLERO;
+        tableroJugador1[fila][columna] = 'X';
+    }
+
+    // Generar tablero de barcos del Jugador 2
+    char tableroJugador2[TAM_TABLERO][TAM_TABLERO];
+    memset(tableroJugador2, ' ', sizeof(tableroJugador2));
+
+    for (int i = 0; i < 3; i++) {
+        int fila = rand() % TAM_TABLERO;
+        int columna = rand() % TAM_TABLERO;
+        tableroJugador2[fila][columna] = 'X';
+    }
+
+    bool turnoJugador1 = true;
+    bool turnoJugador2 = false;
+
+    while (true) {
+        if (turnoJugador1) {
+            // Turno del Jugador 1
+            imprimirTablero(tableroJugador1);
+            cout << "Jugador 1: Ingresa las coordenadas para atacar (ejemplo: A1): ";
+            char coordenadas[3];
+            cin >> coordenadas;
+
+            if (!validarCoordenadas(coordenadas)) {
+                cout << "Coordenadas inválidas. Intenta de nuevo." << endl;
+                continue;
+            }
+
+            int fila = coordenadas[1] - '1';
+            int columna = coordenadas[0] - 'A';
+
+            if (tableroJugador2[fila][columna] == 'X') {
+                cout << "¡Jugador 1 ha hundido un barco del Jugador 2!" << endl;
+                tableroJugador2[fila][columna] = ' ';
+            } else {
+                cout << "Jugador 1 ha fallado el ataque." << endl;
+            }
+
+            // Verificar si el Jugador 1 ganó
+            bool barcosJugador2Destruidos = true;
+            for (int i = 0; i < TAM_TABLERO; i++) {
+                for (int j = 0; j < TAM_TABLERO; j++) {
+                    if (tableroJugador2[i][j] == 'X') {
+                        barcosJugador2Destruidos = false;
+                        break;
+                    }
+                }
+                if (!barcosJugador2Destruidos)
+                    break;
+            }
+
+            // Comprobar si todos los barcos del Jugador 2 han sido destruidos, el Jugador 1 gana
+            if (barcosJugador2Destruidos) {
+                cout << "¡El Jugador 1 ha ganado!" << endl;
+                break;
+            }
+
+            turnoJugador1 = false;
+            turnoJugador2 = true;
+        }
+
+        if (turnoJugador2) {
+            // Turno del Jugador 2
+            imprimirTablero(tableroJugador2);
+            cout << "Jugador 2: Ingresa las coordenadas para atacar (ejemplo: A1): ";
+            char coordenadas[3];
+            cin >> coordenadas;
+
+            if (!validarCoordenadas(coordenadas)) {
+                cout << "Coordenadas inválidas. Intenta de nuevo." << endl;
+                continue;
+            }
+
+            int fila = coordenadas[1] - '1';
+            int columna = coordenadas[0] - 'A';
+
+            if (tableroJugador1[fila][columna] == 'X') {
+                cout << "¡Jugador 2 ha hundido un barco del Jugador 1!" << endl;
+                tableroJugador1[fila][columna] = ' ';
+            } else {
+                cout << "Jugador 2 ha fallado el ataque." << endl;
+            }
+
+            // Verificar si el Jugador 2 ganó
+            bool barcosJugador1Destruidos = true;
+            for (int i = 0; i < TAM_TABLERO; i++) {
+                for (int j = 0; j < TAM_TABLERO; j++) {
+                    if (tableroJugador1[i][j] == 'X') {
+                        barcosJugador1Destruidos = false;
+                        break;
+                    }
+                }
+                if (!barcosJugador1Destruidos)
+                    break;
+            }
+
+            // Comprobar si todos los barcos del Jugador 1 han sido destruidos, el Jugador 2 gana
+            if (barcosJugador1Destruidos) {
+                cout << "¡El Jugador 2 ha ganado!" << endl;
+                break;
+            }
+
+            turnoJugador1 = true;
+            turnoJugador2 = false;
+        }
+    }
+
+    // Cerrar conexiones y sockets
+    close(jugador2Socket);
+    close(servidorSocket);
+
     return 0;
 }
+
