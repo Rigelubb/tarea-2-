@@ -1,54 +1,46 @@
-Juego de Batalla Naval - Servidor y Cliente
+Juego de Batalla Naval - Cliente y Servidor
 
-Este es un juego de Batalla Naval implementado en C++, que consta de un servidor y múltiples clientes que pueden conectarse para jugar entre sí.
-Requisitos del sistema
+Este es un juego de Batalla Naval que permite a dos jugadores jugar en red utilizando un modelo cliente-servidor. Uno de los jugadores actúa como servidor (Jugador 1) y el otro como cliente (Jugador 2). Ambos jugadores podrán colocar sus barcos en el tablero y tratar de hundir los barcos del oponente.
 
-    Se recomienda tener instalado el compilador de C++ (g++) en el sistema.
-    Se requiere el paquete libpthread para admitir hilos en el programa. Puedes instalarlo en Ubuntu con el siguiente comando:
+El juego utiliza sockets para establecer una conexión entre el cliente y el servidor, permitiendo que los jugadores se comuniquen y realicen sus movimientos de manera sincronizada.
+Requisitos
 
+    Compilador C++ compatible con el estándar C++11.
+    Biblioteca de sockets de red (ejemplo: en Linux se utiliza <sys/socket.h>).
+    Terminal o máquina para ejecutar el servidor (Jugador 1) y el cliente (Jugador 2).
 
+Instrucciones
 
-sudo apt-get install libpthread-stubs0-dev
+    Compilación:
 
-Compilación y ejecución
+        Servidor (Jugador 1): Ejecutar el siguiente comando en la terminal:
 
-    Descarga los archivos servidor.cpp y cliente.cpp en la misma carpeta.
+g++ servidor.cpp -o servidor
 
-    Abre una terminal y navega hasta la carpeta que contiene los archivos descargados.
+Cliente (Jugador 2): Ejecutar el siguiente comando en la terminal:
 
-    Compila el servidor con el siguiente comando:
+    g++ cliente.cpp -o cliente
 
-g++ servidor.cpp -o servidor -pthread
+Ejecución:
 
-    Compila el cliente con el siguiente comando:
+    Servidor (Jugador 1): Ejecutar el siguiente comando en la terminal:
 
-g++ cliente.cpp -o cliente
-
-    Ejecuta el servidor con el siguiente comando:
-
-bash
+    bash
 
 ./servidor
 
-    En otra terminal, ejecuta el cliente con el siguiente comando:
+Cliente (Jugador 2): Ejecutar el siguiente comando en la terminal:
 
 bash
 
-./cliente
+    ./cliente
 
-    Sigue las instrucciones en la terminal del cliente para jugar al juego de Batalla Naval.
+Juego:
 
-Funcionalidades
-
-    El servidor espera la conexión de múltiples clientes.
-    El juego comienza cuando se conectan al menos dos clientes.
-    Los clientes pueden realizar disparos en el tablero y recibir actualizaciones del estado del juego.
-    El servidor coordina los turnos de los clientes y valida las jugadas.
-    El juego continúa hasta que haya un ganador o los clientes decidan salir.
-
-Personalización
-
-    Puedes personalizar el tamaño del tablero de juego y el número de embarcaciones en el archivo servidor.cpp. Modifica las constantes TAM_TABLERO y NUM_EMBARCACIONES según tus preferencias.
+    Cada jugador deberá colocar sus barcos en el tablero siguiendo las instrucciones que se mostrarán en la terminal.
+    Los jugadores se turnarán para realizar sus ataques, siguiendo el formato de coordenadas indicado (por ejemplo: A1, B2, etc.).
+    Se mostrará información en la terminal sobre el resultado de los ataques y el estado de los tableros.
+    El juego continuará hasta que uno de los jugadores haya hundido todos los barcos del oponente.(POR EL MOMENTO LUEGO DEL PRIMER TIRO DEL JUGADOR 1 SE CONTINUA JUGANDO EN ESA TERMINAL AMBOS ,POR REPARA PERO AUN ASI SE PUEDE JUGAR Y SE HACE EL SOCKET)
 
 ¡Disfruta jugando al juego de Batalla Naval!
 
