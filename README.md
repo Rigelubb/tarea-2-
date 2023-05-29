@@ -1,107 +1,55 @@
-# tarea-2-
-tarea 2 
-Batalla Naval - README
+Juego de Batalla Naval - Servidor y Cliente
 
-El código del juego de Batalla Naval consta de dos archivos: servidor.cpp y cliente.cpp. Estos archivos contienen la implementación del servidor y del cliente respectivamente.
-Implementación del Servidor
+Este es un juego de Batalla Naval implementado en C++, que consta de un servidor y múltiples clientes que pueden conectarse para jugar entre sí.
+Requisitos del sistema
 
-El archivo servidor.cpp contiene la implementación del servidor. A continuación se describen los pasos clave de la implementación:
+    Se recomienda tener instalado el compilador de C++ (g++) en el sistema.
+    Se requiere el paquete libpthread para admitir hilos en el programa. Puedes instalarlo en Ubuntu con el siguiente comando:
 
-    Incluye las bibliotecas necesarias:
 
-    cpp
 
-#include <iostream>
-#include <cstring>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <thread>
-#include <vector>
+sudo apt-get install libpthread-stubs0-dev
 
-Define algunas constantes importantes, como el puerto y el tamaño del tablero:
+Compilación y ejecución
 
-cpp
+    Descarga los archivos servidor.cpp y cliente.cpp en la misma carpeta.
 
-    const int PUERTO = 7777;
-    const int TAMANIO_TABLERO = 15;
+    Abre una terminal y navega hasta la carpeta que contiene los archivos descargados.
 
-    Implementa algunas funciones auxiliares, como enviarMensaje() y recibirMensaje(), para enviar y recibir mensajes a través del socket.
+    Compila el servidor con el siguiente comando:
 
-    Implementa la función manejarCliente() que se encarga de manejar la comunicación con cada cliente individualmente. En esta función se realizan las siguientes tareas:
-        Generar las posiciones de las embarcaciones para el cliente.
-        Enviar las posiciones de las embarcaciones al cliente.
-        Recibir los disparos del cliente y procesarlos.
-        Actualizar los tableros y verificar si hay un ganador.
-        Enviar los resultados al cliente.
+g++ servidor.cpp -o servidor -pthread
 
-    Implementa la función main() que se encarga de iniciar el servidor, aceptar conexiones de los clientes y manejarlos en hilos separados.
+    Compila el cliente con el siguiente comando:
 
-Implementación del Cliente
+g++ cliente.cpp -o cliente
 
-El archivo cliente.cpp contiene la implementación del cliente. A continuación se describen los pasos clave de la implementación:
-
-    Incluye las bibliotecas necesarias:
-
-    cpp
-
-#include <iostream>
-#include <cstring>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-
-Define algunas constantes importantes, como la dirección IP del servidor y el puerto:
-
-cpp
-
-    const char* DIRECCION_IP_SERVIDOR = "127.0.0.1";
-    const int PUERTO_SERVIDOR = 7777;
-
-    Implementa algunas funciones auxiliares, como enviarMensaje() y recibirMensaje(), para enviar y recibir mensajes a través del socket.
-
-    Implementa la función jugarBatallaNaval() que se encarga de la lógica del juego. En esta función se realizan las siguientes tareas:
-        Conectarse al servidor.
-        Recibir las posiciones de las embarcaciones del servidor.
-        Solicitar al usuario que ingrese los disparos.
-        Enviar los disparos al servidor.
-        Recibir los resultados del servidor y mostrarlos al usuario.
-        Repetir hasta que haya un ganador.
-
-    Implementa la función main() que se encarga de llamar a la función jugarBatallaNaval().
-
-Compilación y Ejecución
-
-Para compilar y ejecutar el juego de Batalla Naval en Ubuntu, puedes seguir estos pasos:
-
-    Abre una terminal y ve al directorio que contiene los archivos servidor.cpp y cliente.cpp.
-
-    Compila el archivo servidor.cpp:
-
-    bash
-
-g++ -o servidor servidor.cpp -lpthread
-
-Compila el archivo cliente.cpp:
-
-bash
-
-g++ -o cliente cliente.cpp
-
-Ejecuta el servidor en una terminal:
+    Ejecuta el servidor con el siguiente comando:
 
 bash
 
 ./servidor
 
-Ejecuta el cliente en otra terminal:
+    En otra terminal, ejecuta el cliente con el siguiente comando:
 
 bash
 
-    ./cliente
+./cliente
 
-    Sigue las instrucciones que se muestran en la terminal del cliente para jugar la Batalla Naval.
+    Sigue las instrucciones en la terminal del cliente para jugar al juego de Batalla Naval.
 
-¡Y eso es todo! Ahora puedes disfrutar del juego de Batalla Naval en tu entorno de Ubuntu. Recuerda que el servidor y el cliente deben ejecutarse en terminales separadas para que puedan comunicarse correctamente.
+Funcionalidades
 
-Espero que este breve README te sea útil para comprender y ejecutar el código del juego de Batalla Naval. Si tienes alguna otra pregunta, no dudes en preguntar. ¡Buena suerte!
+    El servidor espera la conexión de múltiples clientes.
+    El juego comienza cuando se conectan al menos dos clientes.
+    Los clientes pueden realizar disparos en el tablero y recibir actualizaciones del estado del juego.
+    El servidor coordina los turnos de los clientes y valida las jugadas.
+    El juego continúa hasta que haya un ganador o los clientes decidan salir.
+
+Personalización
+
+    Puedes personalizar el tamaño del tablero de juego y el número de embarcaciones en el archivo servidor.cpp. Modifica las constantes TAM_TABLERO y NUM_EMBARCACIONES según tus preferencias.
+
+¡Disfruta jugando al juego de Batalla Naval!
+
+Espero que este README te sea útil. Si tienes más preguntas, no dudes en hacerlas. ¡Diviértete jugando!
